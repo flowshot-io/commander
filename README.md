@@ -9,7 +9,7 @@
 
 ### Currently under development. Not suitable for use.
 
-Commander is a set of automation workflows for digital media and entertainment, backed by Navigator, enabling you access to common workflow tasks.
+Commander is a set of automation workflows for digital media and entertainment.
 
 ### Current Workflows
 
