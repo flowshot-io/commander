@@ -76,5 +76,5 @@ func (a *ArtifactActivities) CleanupArtifactActivity(ctx context.Context) error 
 }
 
 func getArtifactExtractionPath(ctx context.Context) string {
-	return filepath.Join(workingDir, activity.GetInfo(ctx).WorkflowExecution.RunID)
+	return filepath.Join(workingDir, activity.GetInfo(ctx).WorkflowExecution.ID)
 }

@@ -3,8 +3,8 @@ package temporalactivities
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"go.temporal.io/sdk/activity"
@@ -34,10 +34,12 @@ func (a *BlenderActivities) RenderProjectActivity(ctx context.Context, projectDi
 func renderFile(ctx context.Context, workingDir string, frameStart int, frameEnd int) (string, error) {
 	logger := activity.GetLogger(ctx)
 
-	outputDir, err := os.MkdirTemp(workingDir, "*")
-	if err != nil {
-		return "", err
-	}
+	// outputDir, err := os.MkdirTemp(workingDir, "*")
+	// if err != nil {
+	// 	return "", err
+	// }
+
+	outputDir := filepath.Join(workingDir, "output")
 
 	args := []string{
 		"render",
@@ -47,10 +49,10 @@ func renderFile(ctx context.Context, workingDir string, frameStart int, frameEnd
 		"-o", outputDir + "/{{.Project}}-#####",
 	}
 
-	cmd := exec.CommandContext(ctx, "flowshot", args...)
+	cmd := exec.CommandContext(ctx, "rocketblend", args...)
 	logger.Info("renderFileActivity executing command.", "Command", cmd.String())
 
-	err = cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		return "", err
 	}
