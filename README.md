@@ -9,7 +9,7 @@
 
 ### Currently under development. Not suitable for use.
 
-Commander is a set of automation workflows for digital media and entertainment.
+Commander is a set of automation workflows for digital media.
 
 ### Current Workflows
 
