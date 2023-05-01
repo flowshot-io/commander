@@ -2,9 +2,9 @@ package blendernode
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
+	"github.com/flowshot-io/commander/internal/commander/temporalactivities"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -61,36 +61,26 @@ func renderProjectArtifact(ctx workflow.Context, projectArtifact string, startFr
 	}
 	defer workflow.CompleteSession(sessionCtx)
 
-	var a *Activities
-	var artifact string
-	err = workflow.ExecuteActivity(sessionCtx, a.DownloadArtifactActivity, projectArtifact).Get(sessionCtx, &artifact)
+	var artifactAct *temporalactivities.ArtifactActivities
+	var extractedDir string
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PullArtifactActivity, projectArtifact).Get(sessionCtx, &extractedDir)
 	if err != nil {
 		return "", err
 	}
 
-	var projectDir string
-	err = workflow.ExecuteActivity(sessionCtx, a.ExtractArtifactActivity, artifact).Get(sessionCtx, &projectDir)
-	if err != nil {
-		return "", err
-	}
-
+	var blenderAct *temporalactivities.BlenderActivities
 	var outputDir string
-	err = workflow.ExecuteActivity(sessionCtx, a.RenderProjectActivity, projectDir, startFrame, endFrame).Get(sessionCtx, &outputDir)
+	err = workflow.ExecuteActivity(sessionCtx, blenderAct.RenderProjectActivity, extractedDir, startFrame, endFrame).Get(sessionCtx, &outputDir)
 	if err != nil {
 		return "", err
 	}
 
 	outputArtifactName := fmt.Sprintf("%s-%d-%d", workflow.GetInfo(ctx).WorkflowExecution.ID, startFrame, endFrame)
 	var outputArtifact string
-	err = workflow.ExecuteActivity(sessionCtx, a.CreateArtifactActivity, outputArtifactName, []string{outputDir}).Get(sessionCtx, &outputArtifact)
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PushArtifactActivity, outputArtifactName, []string{outputDir}).Get(sessionCtx, &outputArtifact)
 	if err != nil {
 		return "", err
 	}
 
-	err = workflow.ExecuteActivity(sessionCtx, a.UploadArtifactActivity, outputArtifact).Get(sessionCtx, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Base(outputArtifact), nil
+	return outputArtifact, nil
 }

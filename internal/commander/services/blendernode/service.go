@@ -3,8 +3,8 @@ package blendernode
 import (
 	"log"
 
-	"github.com/flowshot-io/x/pkg/archiver"
-	"go.beyondstorage.io/v5/types"
+	"github.com/flowshot-io/commander/internal/commander/temporalactivities"
+	"github.com/flowshot-io/x/pkg/artifactservice"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -18,17 +18,15 @@ type (
 	}
 )
 
-func New(temporal client.Client, storager types.Storager, logger *log.Logger) *Service {
+func New(temporal client.Client, artifactClient artifactservice.ArtifactServiceClient, logger *log.Logger) *Service {
 	worker := worker.New(temporal, Queue, worker.Options{
 		EnableSessionWorker:               true,
 		MaxConcurrentSessionExecutionSize: 1,
 	})
 
 	worker.RegisterWorkflow(BlenderNodeWorkflow)
-	worker.RegisterActivity(&Activities{
-		storager: storager,
-		archiver: &archiver.Archiver{},
-	})
+	worker.RegisterActivity(temporalactivities.NewBlenderActivities())
+	worker.RegisterActivity(temporalactivities.NewArtifactActivities(artifactClient))
 
 	return &Service{
 		worker: worker,

@@ -7,8 +7,8 @@ import (
 	"github.com/flowshot-io/commander/internal/commander/services/blenderfarm"
 	"github.com/flowshot-io/commander/internal/commander/services/blendernode"
 	"github.com/flowshot-io/commander/internal/commander/services/frontend"
+	"github.com/flowshot-io/x/pkg/artifactservice"
 	"github.com/flowshot-io/x/pkg/manager"
-	"github.com/flowshot-io/x/pkg/storager"
 	"go.temporal.io/sdk/client"
 )
 
@@ -33,16 +33,22 @@ func New(opts ...ServerOption) (*Commander, error) {
 		return nil, err
 	}
 
-	topts := client.Options{HostPort: so.config.Global.Temporal.Host}
+	topts := client.Options{
+		HostPort: so.config.Global.Temporal.Host,
+	}
 
 	temporal, err := client.Dial(topts)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create Temporal client: %w", err)
 	}
 
-	store, err := storager.New(so.config.Global.Storage.ConnectionString)
+	aopts := artifactservice.Options{
+		ConnectionString: so.config.Global.Storage.ConnectionString,
+	}
+
+	artifact, err := artifactservice.New(aopts)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create store: %w", err)
+		return nil, fmt.Errorf("unable to create Artifact client: %w", err)
 	}
 
 	sm := manager.New()
@@ -54,7 +60,7 @@ func New(opts ...ServerOption) (*Commander, error) {
 		case primitives.BlenderFarmService:
 			sm.Add(serviceName, blenderfarm.New(temporal, so.logger))
 		case primitives.BlenderNodeService:
-			sm.Add(serviceName, blendernode.New(temporal, store, so.logger))
+			sm.Add(serviceName, blendernode.New(temporal, artifact, so.logger))
 		}
 	}
 
