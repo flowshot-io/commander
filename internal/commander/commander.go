@@ -7,6 +7,7 @@ import (
 	"github.com/flowshot-io/commander/internal/commander/services/blenderfarm"
 	"github.com/flowshot-io/commander/internal/commander/services/blendernode"
 	"github.com/flowshot-io/commander/internal/commander/services/frontend"
+	"github.com/flowshot-io/polystore/pkg/services"
 	"github.com/flowshot-io/x/pkg/artifactservice"
 	"github.com/flowshot-io/x/pkg/manager"
 	"go.temporal.io/sdk/client"
@@ -42,11 +43,14 @@ func New(opts ...ServerOption) (*Commander, error) {
 		return nil, fmt.Errorf("unable to create Temporal client: %w", err)
 	}
 
-	aopts := artifactservice.Options{
-		ConnectionString: so.config.Global.Storage.ConnectionString,
+	store, err := services.NewStorageFromString(so.config.Global.Storage.ConnectionString)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create Storage client: %w", err)
 	}
 
-	artifact, err := artifactservice.New(aopts)
+	artifact, err := artifactservice.New(artifactservice.Options{
+		Store: store,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to create Artifact client: %w", err)
 	}

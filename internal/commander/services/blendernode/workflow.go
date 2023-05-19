@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/flowshot-io/commander/internal/commander/temporalactivities"
+	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
+	"github.com/flowshot-io/x/pkg/temporalactivities"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -63,12 +64,12 @@ func renderProjectArtifact(ctx workflow.Context, projectArtifact string, startFr
 
 	var artifactAct *temporalactivities.ArtifactActivities
 	var extractedDir string
-	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PullArtifactActivity, projectArtifact).Get(sessionCtx, &extractedDir)
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PullArtifact, projectArtifact, workflow.GetInfo(ctx).WorkflowExecution.ID).Get(sessionCtx, &extractedDir)
 	if err != nil {
 		return "", err
 	}
 
-	var blenderAct *temporalactivities.BlenderActivities
+	var blenderAct *commanderactivities.BlenderActivities
 	var outputDir string
 	err = workflow.ExecuteActivity(sessionCtx, blenderAct.RenderProjectActivity, extractedDir, startFrame, endFrame).Get(sessionCtx, &outputDir)
 	if err != nil {
@@ -77,7 +78,7 @@ func renderProjectArtifact(ctx workflow.Context, projectArtifact string, startFr
 
 	outputArtifactName := fmt.Sprintf("%s-%d-%d", workflow.GetInfo(ctx).WorkflowExecution.ID, startFrame, endFrame)
 	var outputArtifact string
-	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PushArtifactActivity, outputArtifactName, []string{outputDir}).Get(sessionCtx, &outputArtifact)
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PushArtifact, outputArtifactName, []string{outputDir}).Get(sessionCtx, &outputArtifact)
 	if err != nil {
 		return "", err
 	}

@@ -34,11 +34,6 @@ func (a *BlenderActivities) RenderProjectActivity(ctx context.Context, projectDi
 func renderFile(ctx context.Context, workingDir string, frameStart int, frameEnd int) (string, error) {
 	logger := activity.GetLogger(ctx)
 
-	// outputDir, err := os.MkdirTemp(workingDir, "*")
-	// if err != nil {
-	// 	return "", err
-	// }
-
 	outputDir := filepath.Join(workingDir, "output")
 
 	args := []string{

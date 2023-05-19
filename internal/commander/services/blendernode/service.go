@@ -3,8 +3,9 @@ package blendernode
 import (
 	"log"
 
-	"github.com/flowshot-io/commander/internal/commander/temporalactivities"
+	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
 	"github.com/flowshot-io/x/pkg/artifactservice"
+	"github.com/flowshot-io/x/pkg/temporalactivities"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -25,7 +26,7 @@ func New(temporal client.Client, artifactClient artifactservice.ArtifactServiceC
 	})
 
 	worker.RegisterWorkflow(BlenderNodeWorkflow)
-	worker.RegisterActivity(temporalactivities.NewBlenderActivities())
+	worker.RegisterActivity(commanderactivities.NewBlenderActivities())
 	worker.RegisterActivity(temporalactivities.NewArtifactActivities(artifactClient))
 
 	return &Service{
