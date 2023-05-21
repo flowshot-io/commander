@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
+	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
+	"github.com/flowshot-io/x/pkg/temporalactivities"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -61,36 +63,26 @@ func renderProjectArtifact(ctx workflow.Context, projectArtifact string, startFr
 	}
 	defer workflow.CompleteSession(sessionCtx)
 
-	var a *Activities
-	var artifact string
-	err = workflow.ExecuteActivity(sessionCtx, a.DownloadArtifactActivity, projectArtifact).Get(sessionCtx, &artifact)
+	localDir := filepath.Join("temp", workflow.GetInfo(ctx).WorkflowExecution.ID)
+
+	var artifactAct *temporalactivities.ArtifactActivities
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PullArtifact, projectArtifact, localDir).Get(sessionCtx, nil)
 	if err != nil {
 		return "", err
 	}
 
-	var projectDir string
-	err = workflow.ExecuteActivity(sessionCtx, a.ExtractArtifactActivity, artifact).Get(sessionCtx, &projectDir)
-	if err != nil {
-		return "", err
-	}
-
+	var blenderAct *commanderactivities.BlenderActivities
 	var outputDir string
-	err = workflow.ExecuteActivity(sessionCtx, a.RenderProjectActivity, projectDir, startFrame, endFrame).Get(sessionCtx, &outputDir)
+	err = workflow.ExecuteActivity(sessionCtx, blenderAct.RenderProjectActivity, localDir, startFrame, endFrame).Get(sessionCtx, &outputDir)
 	if err != nil {
 		return "", err
 	}
 
-	outputArtifactName := fmt.Sprintf("%s-%d-%d", workflow.GetInfo(ctx).WorkflowExecution.ID, startFrame, endFrame)
-	var outputArtifact string
-	err = workflow.ExecuteActivity(sessionCtx, a.CreateArtifactActivity, outputArtifactName, []string{outputDir}).Get(sessionCtx, &outputArtifact)
+	outputArtifactName := fmt.Sprintf("%s-%d-%d", projectArtifact, startFrame, endFrame)
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PushArtifact, outputArtifactName, []string{outputDir}).Get(sessionCtx, nil)
 	if err != nil {
 		return "", err
 	}
 
-	err = workflow.ExecuteActivity(sessionCtx, a.UploadArtifactActivity, outputArtifact).Get(sessionCtx, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Base(outputArtifact), nil
+	return outputArtifactName, nil
 }
