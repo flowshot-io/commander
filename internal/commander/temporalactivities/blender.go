@@ -17,11 +17,11 @@ func NewBlenderActivities() *BlenderActivities {
 	return &BlenderActivities{}
 }
 
-func (a *BlenderActivities) RenderProjectActivity(ctx context.Context, projectDir string, startFrame int, endFrame int) (string, error) {
+func (a *BlenderActivities) RenderProjectActivity(ctx context.Context, workingDir string, startFrame int, endFrame int) (string, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Rendering project...", "ProjectDir", projectDir, "StartFrame", startFrame, "EndFrame", endFrame)
+	logger.Info("Rendering project...", "WorkingDir", workingDir, "StartFrame", startFrame, "EndFrame", endFrame)
 
-	output, err := renderFile(ctx, projectDir, startFrame, endFrame)
+	output, err := renderFile(ctx, workingDir, startFrame, endFrame)
 	if err != nil {
 		logger.Error("RenderFileActivity failed to render project.", "Error", err)
 		return "", err
@@ -34,14 +34,13 @@ func (a *BlenderActivities) RenderProjectActivity(ctx context.Context, projectDi
 func renderFile(ctx context.Context, workingDir string, frameStart int, frameEnd int) (string, error) {
 	logger := activity.GetLogger(ctx)
 
-	outputDir := filepath.Join(workingDir, "output")
+	logger.Info("renderFileActivity starting...", "WorkingDir", workingDir, "FrameStart", frameStart, "FrameEnd", frameEnd)
 
 	args := []string{
 		"render",
 		"-d", workingDir,
 		"-s", fmt.Sprintf("%d", frameStart),
 		"-e", fmt.Sprintf("%d", frameEnd),
-		"-o", outputDir + "/{{.Project}}-#####",
 	}
 
 	cmd := exec.CommandContext(ctx, "rocketblend", args...)
@@ -78,5 +77,5 @@ OuterLoop:
 
 	logger.Info("renderFileActivity command finished.")
 
-	return outputDir, nil
+	return filepath.Join(workingDir, "output"), nil
 }

@@ -5,13 +5,16 @@ go 1.19
 require (
 	github.com/flowshot-io/commander-client-go v0.0.0-20230429224247-a3aa99d64cf0
 	github.com/flowshot-io/polystore v0.0.0-20230519144818-0fc19a23ee91
-	github.com/flowshot-io/x v0.0.0-20230519154241-26197a4761e7
+	github.com/flowshot-io/x v0.0.0-20230520173334-333f51113a21
 	go.temporal.io/sdk v1.21.1
 	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9
 	google.golang.org/grpc v1.54.0
 )
 
 require (
+	github.com/aws/aws-sdk-go v1.44.265 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.33.1 // indirect
+	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -24,6 +27,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

@@ -3,6 +3,9 @@ package commander
 import (
 	"fmt"
 
+	_ "github.com/flowshot-io/polystore/pkg/services/fs"
+	_ "github.com/flowshot-io/polystore/pkg/services/s3"
+
 	"github.com/flowshot-io/commander/internal/commander/primitives"
 	"github.com/flowshot-io/commander/internal/commander/services/blenderfarm"
 	"github.com/flowshot-io/commander/internal/commander/services/blendernode"

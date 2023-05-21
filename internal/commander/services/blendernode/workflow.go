@@ -2,6 +2,7 @@ package blendernode
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
@@ -62,26 +63,26 @@ func renderProjectArtifact(ctx workflow.Context, projectArtifact string, startFr
 	}
 	defer workflow.CompleteSession(sessionCtx)
 
+	localDir := filepath.Join("temp", workflow.GetInfo(ctx).WorkflowExecution.ID)
+
 	var artifactAct *temporalactivities.ArtifactActivities
-	var extractedDir string
-	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PullArtifact, projectArtifact, workflow.GetInfo(ctx).WorkflowExecution.ID).Get(sessionCtx, &extractedDir)
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PullArtifact, projectArtifact, localDir).Get(sessionCtx, nil)
 	if err != nil {
 		return "", err
 	}
 
 	var blenderAct *commanderactivities.BlenderActivities
 	var outputDir string
-	err = workflow.ExecuteActivity(sessionCtx, blenderAct.RenderProjectActivity, extractedDir, startFrame, endFrame).Get(sessionCtx, &outputDir)
+	err = workflow.ExecuteActivity(sessionCtx, blenderAct.RenderProjectActivity, localDir, startFrame, endFrame).Get(sessionCtx, &outputDir)
 	if err != nil {
 		return "", err
 	}
 
-	outputArtifactName := fmt.Sprintf("%s-%d-%d", workflow.GetInfo(ctx).WorkflowExecution.ID, startFrame, endFrame)
-	var outputArtifact string
-	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PushArtifact, outputArtifactName, []string{outputDir}).Get(sessionCtx, &outputArtifact)
+	outputArtifactName := fmt.Sprintf("%s-%d-%d", projectArtifact, startFrame, endFrame)
+	err = workflow.ExecuteActivity(sessionCtx, artifactAct.PushArtifact, outputArtifactName, []string{outputDir}).Get(sessionCtx, nil)
 	if err != nil {
 		return "", err
 	}
 
-	return outputArtifact, nil
+	return outputArtifactName, nil
 }
