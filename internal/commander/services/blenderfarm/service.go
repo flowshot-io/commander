@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/flowshot-io/x/pkg/manager"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -22,7 +23,7 @@ type (
 	}
 )
 
-func New(opts Options) (*Service, error) {
+func New(opts Options) (manager.Service, error) {
 	if opts.Logger == nil {
 		opts.Logger = logger.NoOp()
 	}

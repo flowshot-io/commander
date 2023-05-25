@@ -6,6 +6,7 @@ import (
 	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
 	"github.com/flowshot-io/x/pkg/artifactservice"
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/flowshot-io/x/pkg/manager"
 	"github.com/flowshot-io/x/pkg/temporalactivities"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -26,7 +27,7 @@ type (
 	}
 )
 
-func New(opts Options) (*Service, error) {
+func New(opts Options) (manager.Service, error) {
 	if opts.Logger == nil {
 		opts.Logger = logger.NoOp()
 	}

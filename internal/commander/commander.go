@@ -28,11 +28,11 @@ var (
 type (
 	Commander struct {
 		ServerOptions *serverOptions
-		services      *manager.ServiceManager
+		services      manager.ServiceController
 	}
 )
 
-func New(opts ...ServerOption) (*Commander, error) {
+func New(opts ...ServerOption) (manager.Service, error) {
 	so, err := ServerOptions(opts)
 	if err != nil {
 		return nil, err

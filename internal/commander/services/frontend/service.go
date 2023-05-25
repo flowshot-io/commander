@@ -6,6 +6,7 @@ import (
 
 	"github.com/flowshot-io/commander-client-go/commanderservice/v1"
 	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/flowshot-io/x/pkg/manager"
 	"go.temporal.io/sdk/client"
 	"google.golang.org/grpc"
 )
@@ -27,7 +28,7 @@ type server struct {
 	temporal client.Client
 }
 
-func New(opts Options) (*Service, error) {
+func New(opts Options) (manager.Service, error) {
 	if opts.Logger == nil {
 		opts.Logger = logger.NoOp()
 	}
