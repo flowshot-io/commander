@@ -63,10 +63,5 @@ func (so *serverOptions) validateConfig() error {
 		return err
 	}
 
-	// for name := range so.serviceNames {
-	// 	if _, ok := so.config.Services[string(name)]; !ok {
-	// 		return fmt.Errorf("%q service is missing in config", name)
-	// 	}
-	// }
 	return nil
 }
