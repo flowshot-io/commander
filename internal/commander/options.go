@@ -2,9 +2,9 @@ package commander
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/flowshot-io/commander/internal/commander/config"
+	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/flowshot-io/x/pkg/manager"
 	"golang.org/x/exp/slices"
 )
@@ -19,7 +19,7 @@ type (
 		interruptCh   <-chan interface{}
 		blockingStart bool
 
-		logger *log.Logger
+		logger logger.Logger
 	}
 )
 

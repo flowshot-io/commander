@@ -1,9 +1,8 @@
 package commander
 
 import (
-	"log"
-
 	"github.com/flowshot-io/commander/internal/commander/config"
+	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/flowshot-io/x/pkg/manager"
 )
 
@@ -50,7 +49,7 @@ func InterruptOn(interruptCh <-chan interface{}) ServerOption {
 }
 
 // WithLogger sets a custom logger
-func WithLogger(logger *log.Logger) ServerOption {
+func WithLogger(logger logger.Logger) ServerOption {
 	return applyFunc(func(s *serverOptions) {
 		s.logger = logger
 	})
