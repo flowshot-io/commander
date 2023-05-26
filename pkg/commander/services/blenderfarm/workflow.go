@@ -3,7 +3,7 @@ package blenderfarm
 import (
 	"time"
 
-	"github.com/flowshot-io/commander/internal/commander/services/blendernode"
+	"github.com/flowshot-io/commander/pkg/commander/services/blendernode"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )

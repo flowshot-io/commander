@@ -3,7 +3,7 @@ package blendernode
 import (
 	"fmt"
 
-	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
+	commanderactivities "github.com/flowshot-io/commander/pkg/commander/temporalactivities"
 	"github.com/flowshot-io/x/pkg/artifactservice"
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/flowshot-io/x/pkg/manager"

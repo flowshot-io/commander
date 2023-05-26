@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/flowshot-io/commander-client-go/commanderservice/v1"
-	"github.com/flowshot-io/commander/internal/commander/services/blenderfarm"
+	"github.com/flowshot-io/commander/pkg/commander/services/blenderfarm"
 	"go.temporal.io/sdk/client"
 )
 
