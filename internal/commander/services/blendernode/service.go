@@ -1,10 +1,12 @@
 package blendernode
 
 import (
-	"log"
+	"fmt"
 
 	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
 	"github.com/flowshot-io/x/pkg/artifactservice"
+	"github.com/flowshot-io/x/pkg/logger"
+	"github.com/flowshot-io/x/pkg/manager"
 	"github.com/flowshot-io/x/pkg/temporalactivities"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -13,34 +15,50 @@ import (
 const Queue = "blendernode-queue"
 
 type (
+	Options struct {
+		TemporalClient client.Client
+		ArtifactClient artifactservice.ArtifactServiceClient
+		Logger         logger.Logger
+	}
+
 	Service struct {
-		logger *log.Logger
+		logger logger.Logger
 		worker worker.Worker
 	}
 )
 
-func New(temporal client.Client, artifactClient artifactservice.ArtifactServiceClient, logger *log.Logger) *Service {
-	worker := worker.New(temporal, Queue, worker.Options{
+func New(opts Options) (manager.Service, error) {
+	if opts.Logger == nil {
+		opts.Logger = logger.NoOp()
+	}
+
+	if opts.TemporalClient == nil {
+		return nil, fmt.Errorf("temporal client is required")
+	}
+
+	if opts.ArtifactClient == nil {
+		return nil, fmt.Errorf("artifact client is required")
+	}
+
+	worker := worker.New(opts.TemporalClient, Queue, worker.Options{
 		EnableSessionWorker:               true,
 		MaxConcurrentSessionExecutionSize: 1,
 	})
 
 	worker.RegisterWorkflow(BlenderNodeWorkflow)
 	worker.RegisterActivity(commanderactivities.NewBlenderActivities())
-	worker.RegisterActivity(temporalactivities.NewArtifactActivities(artifactClient))
+	worker.RegisterActivity(temporalactivities.NewArtifactActivities(opts.ArtifactClient))
 
 	return &Service{
 		worker: worker,
-		logger: logger,
-	}
+		logger: opts.Logger,
+	}, nil
 }
 
 func (s *Service) Start() error {
-	s.logger.Println("Starting blendernode service")
-
 	err := s.worker.Start()
 	if err != nil {
-		s.logger.Println("Unable to start worker", map[string]interface{}{"Error": err.Error()})
+		s.logger.Error("Unable to start worker", map[string]interface{}{"Error": err.Error()})
 		return err
 	}
 
@@ -48,9 +66,6 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) Stop() error {
-	s.logger.Println("Stopping blendernode service")
 	s.worker.Stop()
-	s.logger.Println("blendernode service stopped")
-
 	return nil
 }

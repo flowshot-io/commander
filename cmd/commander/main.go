@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/flowshot-io/commander/internal/commander"
 	"github.com/flowshot-io/commander/internal/commander/config"
+	"github.com/flowshot-io/x/pkg/logger"
 )
 
 const AppName = "commander"
@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := log.Default()
+	logger := logger.New(&logger.Options{Pretty: true})
 
 	commander, err := commander.New(
 		commander.WithConfig(cfg),
@@ -31,7 +31,7 @@ func main() {
 		commander.WithLogger(logger),
 	)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error("Unable to create commander", map[string]interface{}{"Error": err.Error()})
 		os.Exit(1)
 	}
 
@@ -41,7 +41,11 @@ func main() {
 	// Start the commander in a separate Goroutine
 	go func() {
 		defer wg.Done()
-		commander.Start()
+		err = commander.Start()
+		if err != nil {
+			logger.Error("Unable to start commander", map[string]interface{}{"Error": err.Error()})
+			os.Exit(1)
+		}
 	}()
 
 	// Listen for os.Interrupt signals (e.g., Ctrl+C)
@@ -49,7 +53,7 @@ func main() {
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	<-signalChan
-	fmt.Println("Received interrupt signal, stopping all services...")
+	logger.Info("Received interrupt signal, stopping all services...")
 	commander.Stop()
 
 	wg.Wait()
