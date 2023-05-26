@@ -1,7 +1,9 @@
 package factory
 
 import (
+	"context"
 	"fmt"
+	"math"
 	"time"
 
 	_ "github.com/flowshot-io/polystore/pkg/services/fs"
@@ -17,13 +19,14 @@ import (
 )
 
 type Factory interface {
-	TemporalClient(hostPort string) (client.Client, error)
-	ArtifactClient(connectionString string) (artifactservice.ArtifactServiceClient, error)
+	TemporalClient(ctx context.Context, hostPort string) (client.Client, error)
+	ArtifactClient(ctx context.Context, connectionString string) (artifactservice.ArtifactServiceClient, error)
 }
 
 type RetryFactory struct {
 	maxRetries    int
 	retryInterval time.Duration
+	maxTotalTime  time.Duration
 	logger        logger.Logger
 }
 
@@ -41,6 +44,12 @@ func WithRetryInterval(retryInterval time.Duration) OptionsFunc {
 	}
 }
 
+func WithMaxTotalTime(maxTotalTime time.Duration) OptionsFunc {
+	return func(f *RetryFactory) {
+		f.maxTotalTime = maxTotalTime
+	}
+}
+
 func WithLogger(logger logger.Logger) OptionsFunc {
 	return func(f *RetryFactory) {
 		f.logger = logger
@@ -51,6 +60,7 @@ func New(opts ...OptionsFunc) Factory {
 	factory := &RetryFactory{
 		maxRetries:    5,
 		retryInterval: 5 * time.Second,
+		maxTotalTime:  1 * time.Minute,
 		logger:        logger.NoOp(),
 	}
 
@@ -61,38 +71,63 @@ func New(opts ...OptionsFunc) Factory {
 	return factory
 }
 
-func (f *RetryFactory) ArtifactClient(connectionString string) (artifactservice.ArtifactServiceClient, error) {
-	var err error
+func (f *RetryFactory) ArtifactClient(ctx context.Context, connectionString string) (artifactservice.ArtifactServiceClient, error) {
 	var store types.Storage
-	for i := 0; i < f.maxRetries; i++ {
+	err := f.retry(ctx, func() error {
+		var err error
 		store, err = services.NewStorageFromString(connectionString)
-		if err != nil {
-			f.logger.Error(fmt.Sprintf("Attempt %d: unable to create Artifact client: %v", i+1, err))
-			time.Sleep(f.retryInterval * time.Duration(i+1))
-			continue
-		}
-		return artifactservice.New(artifactservice.Options{
-			Store: store,
-		})
+		return err
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to create Artifact client: %v", err)
 	}
-	return nil, fmt.Errorf("unable to create Artifact client after %d attempts", f.maxRetries)
+
+	return artifactservice.New(artifactservice.Options{
+		Store: store,
+	})
 }
 
-func (f *RetryFactory) TemporalClient(hostPort string) (client.Client, error) {
-	var err error
+func (f *RetryFactory) TemporalClient(ctx context.Context, hostPort string) (client.Client, error) {
 	var temporal client.Client
-	for i := 0; i < f.maxRetries; i++ {
+	err := f.retry(ctx, func() error {
+		var err error
 		temporal, err = client.Dial(client.Options{
 			HostPort: hostPort,
 			Logger:   temporallogger.New(f.logger),
 		})
-		if err != nil {
-			f.logger.Error(fmt.Sprintf("Attempt %d: unable to create Temporal client: %v", i+1, err))
-			time.Sleep(f.retryInterval * time.Duration(i+1))
-			continue
-		}
-		return temporal, nil
+		return err
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to create Temporal client: %v", err)
 	}
 
-	return nil, fmt.Errorf("unable to create Temporal client after %d attempts", f.maxRetries)
+	return temporal, nil
+}
+
+func (f *RetryFactory) retry(ctx context.Context, call func() error) error {
+	elapsedTime := time.Duration(0)
+	for i := 0; i < f.maxRetries && elapsedTime < f.maxTotalTime; i++ {
+		err := call()
+		if err == nil {
+			return nil
+		}
+
+		sleepDuration := f.retryInterval * time.Duration(math.Pow(2, float64(i)))
+		elapsedTime += sleepDuration
+		if elapsedTime > f.maxTotalTime {
+			sleepDuration -= elapsedTime - f.maxTotalTime
+		}
+
+		f.logger.Error(fmt.Sprintf("Attempt %d: error: %v", i+1, err))
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(sleepDuration):
+			// Continue retrying.
+		}
+	}
+
+	return fmt.Errorf("retrying failed after %d attempts and %s elapsed time", f.maxRetries, elapsedTime)
 }

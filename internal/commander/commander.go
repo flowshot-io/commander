@@ -1,6 +1,7 @@
 package commander
 
 import (
+	"context"
 	"fmt"
 
 	_ "github.com/flowshot-io/polystore/pkg/services/fs"
@@ -26,9 +27,11 @@ var (
 
 type (
 	Commander struct {
-		serverOptions *serverOptions
-		factory       factory.Factory
-		services      manager.ServiceController
+		serverOptions     *serverOptions
+		connectionFactory factory.Factory
+		services          manager.ServiceController
+		ctx               context.Context
+		cancel            context.CancelFunc
 	}
 )
 
@@ -38,20 +41,24 @@ func New(opts ...ServerOption) (manager.Service, error) {
 		return nil, err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Commander{
-		serverOptions: so,
-		services:      manager.New(&manager.Options{Logger: so.logger}),
-		factory:       factory.New(factory.WithLogger(so.logger)),
+		serverOptions:     so,
+		services:          manager.New(&manager.Options{Logger: so.logger}),
+		connectionFactory: factory.New(factory.WithLogger(so.logger)),
+		ctx:               ctx,
+		cancel:            cancel,
 	}, nil
 }
 
 func (c *Commander) Start() error {
-	temporalClient, err := c.factory.TemporalClient(c.serverOptions.config.Global.Temporal.Host)
+	temporalClient, err := c.connectionFactory.TemporalClient(c.ctx, c.serverOptions.config.Global.Temporal.Host)
 	if err != nil {
 		return fmt.Errorf("unable to create temporal client: %w", err)
 	}
 
-	artifactClient, err := c.factory.ArtifactClient(c.serverOptions.config.Global.Storage.ConnectionString)
+	artifactClient, err := c.connectionFactory.ArtifactClient(c.ctx, c.serverOptions.config.Global.Storage.ConnectionString)
 	if err != nil {
 		return fmt.Errorf("unable to create artifact client: %w", err)
 	}
@@ -65,7 +72,8 @@ func (c *Commander) Start() error {
 }
 
 func (c *Commander) Stop() error {
-	return c.services.Stop()
+	c.cancel()               // Cancel context
+	return c.services.Stop() // Stop services
 }
 
 func ServerOptions(opts []ServerOption) (*serverOptions, error) {
@@ -80,37 +88,41 @@ func ServerOptions(opts []ServerOption) (*serverOptions, error) {
 }
 
 func (c *Commander) initServices(temporalClient client.Client, artifactClient artifactservice.ArtifactServiceClient) error {
-	for serviceName := range c.serverOptions.serviceNames {
-		switch serviceName {
-		case primitives.FrontendService:
-			srv, err := frontend.New(frontend.Options{TemporalClient: temporalClient, Logger: c.serverOptions.logger})
-			if err != nil {
-				return fmt.Errorf("unable to create frontend service: %w", err)
-			}
-			err = c.services.Add(serviceName, srv)
-			if err != nil {
-				return fmt.Errorf("unable to add frontend service: %w", err)
-			}
-		case primitives.BlenderFarmService:
-			srv, err := blenderfarm.New(blenderfarm.Options{TemporalClient: temporalClient, Logger: c.serverOptions.logger})
-			if err != nil {
-				return fmt.Errorf("unable to create blenderfarm service: %w", err)
-			}
-			err = c.services.Add(serviceName, srv)
-			if err != nil {
-				return fmt.Errorf("unable to add blenderfarm service: %w", err)
-			}
-		case primitives.BlenderNodeService:
-			srv, err := blendernode.New(blendernode.Options{TemporalClient: temporalClient, ArtifactClient: artifactClient, Logger: c.serverOptions.logger})
-			if err != nil {
-				return fmt.Errorf("unable to create blendernode service: %w", err)
-			}
-
-			err = c.services.Add(serviceName, srv)
-			if err != nil {
-				return fmt.Errorf("unable to add blendernode service: %w", err)
-			}
+	if _, ok := c.serverOptions.serviceNames[primitives.FrontendService]; ok {
+		srv, err := frontend.New(frontend.Options{TemporalClient: temporalClient, Logger: c.serverOptions.logger})
+		if err != nil {
+			return fmt.Errorf("unable to create frontend service: %w", err)
 		}
+
+		err = c.services.Add(primitives.FrontendService, srv)
+		if err != nil {
+			return fmt.Errorf("unable to add frontend service: %w", err)
+		}
+	}
+
+	if _, ok := c.serverOptions.serviceNames[primitives.BlenderFarmService]; ok {
+		srv, err := blenderfarm.New(blenderfarm.Options{TemporalClient: temporalClient, Logger: c.serverOptions.logger})
+		if err != nil {
+			return fmt.Errorf("unable to create blenderfarm service: %w", err)
+		}
+
+		err = c.services.Add(primitives.BlenderFarmService, srv)
+		if err != nil {
+			return fmt.Errorf("unable to add blenderfarm service: %w", err)
+		}
+	}
+
+	if _, ok := c.serverOptions.serviceNames[primitives.BlenderNodeService]; ok {
+		srv, err := blendernode.New(blendernode.Options{TemporalClient: temporalClient, ArtifactClient: artifactClient, Logger: c.serverOptions.logger})
+		if err != nil {
+			return fmt.Errorf("unable to create blendernode service: %w", err)
+		}
+
+		err = c.services.Add(primitives.BlenderNodeService, srv)
+		if err != nil {
+			return fmt.Errorf("unable to add blendernode service: %w", err)
+		}
+
 	}
 
 	return nil
