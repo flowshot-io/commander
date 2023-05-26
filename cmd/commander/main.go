@@ -44,6 +44,7 @@ func main() {
 		err = commander.Start()
 		if err != nil {
 			logger.Error("Unable to start commander", map[string]interface{}{"Error": err.Error()})
+			os.Exit(1)
 		}
 	}()
 
