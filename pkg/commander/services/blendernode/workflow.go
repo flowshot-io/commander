@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	commanderactivities "github.com/flowshot-io/commander/internal/commander/temporalactivities"
+	commanderactivities "github.com/flowshot-io/commander/pkg/commander/temporalactivities"
 	"github.com/flowshot-io/x/pkg/temporalactivities"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"

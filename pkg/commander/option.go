@@ -1,7 +1,7 @@
 package commander
 
 import (
-	"github.com/flowshot-io/commander/internal/commander/config"
+	"github.com/flowshot-io/commander/pkg/commander/config"
 	"github.com/flowshot-io/x/pkg/logger"
 	"github.com/flowshot-io/x/pkg/manager"
 )

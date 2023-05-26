@@ -7,8 +7,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/flowshot-io/commander/internal/commander"
-	"github.com/flowshot-io/commander/internal/commander/config"
+	"github.com/flowshot-io/commander/pkg/commander"
+	"github.com/flowshot-io/commander/pkg/commander/config"
 	"github.com/flowshot-io/x/pkg/logger"
 )
 
